@@ -1,8 +1,12 @@
 #include <Arduino.h>
 #include <Wire.h>
+#include <U8x8lib.h>
 
 #define I2C_ADDR 0x10
+#define I2C_ADDR_DISPLAY 0x3C
 #define I2C_ADDR_GAUGE 0x55
+
+U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8(U8X8_PIN_NONE);
 
 /* Pinout: SCL, SDA und GND mit Pinheader verbinden (von unten nach oben: GND, SCL, SDA).
 Pin 5 mit Pinheader oben verbinden (EEPROM) für den Toggle zum programmieren. */
@@ -103,15 +107,20 @@ Serial.println((int16_t)read_gauge_reg(0x0A), DEC);
 }
 
 void setup() {
-  Wire.begin();
   Serial.begin(9600);
+  u8x8.setI2CAddress(I2C_ADDR_DISPLAY << 1);
+  u8x8.setBusClock(10000);
+  u8x8.begin();
+  u8x8.setContrast(2);
+  u8x8.setFont(u8x8_font_amstrad_cpc_extended_r);
   digitalWrite(5, LOW);
   pinMode(5, OUTPUT);
-  delay(5000);
+  delay(2000);
   program_eeprom();
 }
 
 void loop() {
+  uint16_t tte = read_gauge_reg(0x18);
   query_gauge();
   Serial.print("BALANCE 0x03:");
   Serial.println(read_reg(0x03), HEX);
@@ -129,5 +138,38 @@ void loop() {
   Serial.println(read_reg(0x0A), HEX);
   Serial.print("status:");
   Serial.println(read_reg(0x00), HEX);
-  delay(1000);
+  u8x8.setCursor(0, 0);
+  /* Voltage */
+  u8x8.print(read_gauge_reg(0x08), DEC);
+  u8x8.print(" mV");
+  u8x8.setCursor(0, 1);
+  /* Current */
+  u8x8.print((int16_t)read_gauge_reg(0x0A), DEC);
+  u8x8.print(" cA");
+  u8x8.setCursor(0, 2);
+  /* Remaining capacity */
+  u8x8.print(read_gauge_reg(0x04), DEC);
+  u8x8.print("/");
+  /* Full capacity */
+  u8x8.print(read_gauge_reg(0x06), DEC);
+  u8x8.print(" cAh");
+  u8x8.setCursor(0, 3);
+  /* Cycle Count */
+  u8x8.print(read_gauge_reg(0x2C), DEC);
+  u8x8.print("cyc ");
+  /* Cycle Count */
+  u8x8.print(read_gauge_reg(0x02), DEC);
+  u8x8.print("% ");
+  u8x8.setCursor(0, 4);
+  /* BMS status */
+  u8x8.print(read_reg(0x00), HEX);
+  u8x8.print(" ");
+  if(tte == 65535) {
+    tte = read_gauge_reg(0x1A);
+  }
+  u8x8.print(tte);
+  u8x8.print("m ");
+  u8x8.print(read_gauge_reg(0x0C)-2732);
+  u8x8.print(" dK");
+  delay(500);
 }
