@@ -45,10 +45,10 @@ Mit 0xFA verhält es sich ganz gut, inklusive zügig wechselndem Laden/Balancing
 */
 
 #define OV_CFG 0xFA
-#define UV_CFG 0x1D
-#define OC_UV_DELAY 0x2A
-#define OCD_CFG 0xBF
-#define SCD_CFG 0x74
+#define UV_CFG 0x1D /* try 0x1b for 2,5V */
+#define OC_UV_DELAY 0x2A  /* try 0xCF -> 5s under voltage, 32,5A overcurrent */
+#define OCD_CFG 0xBF /* overcurrent after 1,6s */
+#define SCD_CFG 0x74 /* try 0xFC -> 900µs short circuit, 60A */
 
 void program_eeprom() {
   if((read_reg(0x06) == OV_CFG) &&
